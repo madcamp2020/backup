@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,29 +14,23 @@ import android.view.ViewGroup;
 import java.util.ArrayList;
 
 public class Fragment1 extends Fragment {
+    private RecyclerView recyclerView;
+    private FragmentAdapter adapter;
+    private ArrayList<WordItemData> list = new ArrayList<>();
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-/*
-        ArrayList<String> list = new ArrayList<>();
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        ViewGroup rootView = (ViewGroup)inflater.inflate(R.layout.fragment_1, container, false);
 
-        for (int i=0;i<10;i++){
-            list.add(String.format("TEXT %d", i));
-        }
+        recyclerView = (RecyclerView) rootView.findViewById(R.id.recycler1);
 
-        RecyclerView recyclerView = (RecyclerView) getView().findViewById(R.id.recycler1);
+        list = WordItemData.createContactsList(5);
+        recyclerView.setHasFixedSize(true);
+        adapter = new FragmentAdapter(getActivity(), list);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-
-        Frag1Adapter adapter = new Frag1Adapter(list);
         recyclerView.setAdapter(adapter);
-        */
 
-    }
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_1, container, false);
+        Log.e("Frag", "MainFragment");
+        return rootView;
     }
 }
