@@ -31,7 +31,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-
 public class Fragment2 extends Fragment {
 
     private static final int PICK_FROM_ALBUM = 1;
@@ -45,6 +44,7 @@ public class Fragment2 extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        tedPermission();
     }
 
     private void tedPermission() {
@@ -145,25 +145,36 @@ public class Fragment2 extends Fragment {
         }
 
         if (tempFile != null) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
 
-            Uri photoUri = FileProvider.getUriForFile(getContext().getApplicationContext(),"com.example.test.provider", tempFile);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-            startActivityForResult(intent, PICK_FROM_CAMERA);
-        }else{
-            Uri photoUri = FileProvider.getUriForFile(getContext().getApplicationContext(),"com.example.test.provider", tempFile);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-            startActivityForResult(intent, PICK_FROM_CAMERA);
+                Uri photoUri = FileProvider.getUriForFile(getContext().getApplicationContext(),
+                        "com.example.madcamp2020.provider", tempFile);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+                startActivityForResult(intent, PICK_FROM_CAMERA);
+
+            } else {
+
+                Uri photoUri = Uri.fromFile(tempFile);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+                startActivityForResult(intent, PICK_FROM_CAMERA);
+
+            }
         }
     }
 
-    private File createImageFile() throws IOException{
+    private File createImageFile() throws IOException {
+
+        // 이미지 파일 이름 ( blackJin_{시간}_ )
         String timeStamp = new SimpleDateFormat("HHmmss").format(new Date());
-        String imageFileName = "blackJin_"+timeStamp+"_";
+        String imageFileName = "blackJin_" + timeStamp + "_";
 
-        File storageDir = new File(Environment.getExternalStorageDirectory()+"/backJin/");
-        if(!storageDir.exists()) storageDir.mkdirs();
+        // 이미지가 저장될 폴더 이름 ( blackJin )
+        File storageDir = new File(Environment.getExternalStorageDirectory() + "/blackJin/");
+        if (!storageDir.exists()) storageDir.mkdirs();
 
+        // 파일 생성
         File image = File.createTempFile(imageFileName, ".jpg", storageDir);
+        Log.d(TAG, "createImageFile : " + image.getAbsolutePath());
 
         return image;
     }
@@ -172,7 +183,6 @@ public class Fragment2 extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        tedPermission();
 
         View v = inflater.inflate(R.layout.fragment_2, container, false);
 
