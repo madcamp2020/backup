@@ -22,5 +22,4 @@ public class WordItemData {
 
         return contacts;
     }
-
 }

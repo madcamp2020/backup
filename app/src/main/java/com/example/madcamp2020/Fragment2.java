@@ -1,64 +1,205 @@
 package com.example.madcamp2020;
 
+import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link Fragment2#newInstance} factory method to
- * create an instance of this fragment.
- */
+import com.gun0912.tedpermission.PermissionListener;
+import com.gun0912.tedpermission.TedPermission;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
+
 public class Fragment2 extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private static final int PICK_FROM_ALBUM = 1;
+    private static final int PICK_FROM_CAMERA = 2;
+    private static final String TAG = "blackJin";
+    private File tempFile;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public Fragment2() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment Fragment2.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static Fragment2 newInstance(String param1, String param2) {
-        Fragment2 fragment = new Fragment2();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
+    private Boolean isPermission = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+
+    }
+
+    private void tedPermission() {
+
+        PermissionListener permissionListener = new PermissionListener() {
+            @Override
+            public void onPermissionGranted() {
+                //권한 요청 성공
+            }
+
+            @Override
+            public void onPermissionDenied(ArrayList<String> deniedPermissions) {
+                //권한 요청 실패
+            }
+        };
+
+        TedPermission.with(getContext())
+                .setPermissionListener(permissionListener)
+                .setRationaleMessage(getResources().getString(R.string.permission_2))
+                .setDeniedMessage(getResources().getString(R.string.permission_1))
+                .setPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA)
+                .check();
+    }
+
+    private void goToAlbum(){
+        Log.e(TAG, "ALBUM GO");
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType(MediaStore.Images.Media.CONTENT_TYPE);
+        startActivityForResult(intent, PICK_FROM_ALBUM);
+
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode != Activity.RESULT_OK) {
+
+            Toast.makeText(getContext(), "취소 되었습니다.", Toast.LENGTH_SHORT).show();
+
+            if(tempFile != null) {
+                if (tempFile.exists()) {
+                    if (tempFile.delete()) {
+                        Log.e(TAG, tempFile.getAbsolutePath() + " 삭제 성공");
+                        tempFile = null;
+                    }
+                }
+            }
+
+            return;
+        }
+
+        if(requestCode == PICK_FROM_ALBUM){
+            Uri photoUri = data.getData();
+            Cursor cursor = null;
+
+            try{
+                String[] proj = {MediaStore.Images.Media.DATA};
+                assert photoUri != null;
+                cursor = getActivity().getContentResolver().query(photoUri, proj, null, null, null);
+
+                assert cursor != null;
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+
+                cursor.moveToFirst();
+
+                tempFile = new File(cursor.getString(column_index));
+            }finally {
+                if(cursor!=null){
+                    cursor.close();
+                }
+            }
+            setImage();
+        }else if(requestCode == PICK_FROM_CAMERA){
+            setImage();
         }
     }
+
+    private void setImage(){
+        ImageView imageView = (ImageView)getView().findViewById(R.id.imageView);
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        Bitmap originalBm = BitmapFactory.decodeFile(tempFile.getAbsolutePath(), options);
+
+        imageView.setImageBitmap(originalBm);
+    }
+
+
+    private void takePhoto(){
+        Log.e(TAG,  "PHOTO GO");
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        try{
+            tempFile = createImageFile();
+        }catch(IOException e){
+            Toast.makeText(getContext(), "이미지 처리 오류! 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
+            getActivity().getSupportFragmentManager().popBackStack();
+            e.printStackTrace();
+        }
+
+        if (tempFile != null) {
+
+            Uri photoUri = FileProvider.getUriForFile(getContext().getApplicationContext(),"com.example.test.provider", tempFile);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+            startActivityForResult(intent, PICK_FROM_CAMERA);
+        }else{
+            Uri photoUri = FileProvider.getUriForFile(getContext().getApplicationContext(),"com.example.test.provider", tempFile);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+            startActivityForResult(intent, PICK_FROM_CAMERA);
+        }
+    }
+
+    private File createImageFile() throws IOException{
+        String timeStamp = new SimpleDateFormat("HHmmss").format(new Date());
+        String imageFileName = "blackJin_"+timeStamp+"_";
+
+        File storageDir = new File(Environment.getExternalStorageDirectory()+"/backJin/");
+        if(!storageDir.exists()) storageDir.mkdirs();
+
+        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
+
+        return image;
+    }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        tedPermission();
+
+        View v = inflater.inflate(R.layout.fragment_2, container, false);
+
+        Button btngallery = (Button)v.findViewById(R.id.btnGallery);
+        btngallery.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // 권한 허용에 동의하지 않았을 경우 토스트를 띄웁니다.
+                if(isPermission) goToAlbum();
+                else Toast.makeText(view.getContext(), getResources().getString(R.string.permission_2), Toast.LENGTH_LONG).show();
+            }
+        });
+
+        Button btncam = (Button)v.findViewById(R.id.btnCamera);
+        btncam.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // 권한 허용에 동의하지 않았을 경우 토스트를 띄웁니다.
+                if(isPermission)  takePhoto();
+                else Toast.makeText(view.getContext(), getResources().getString(R.string.permission_2), Toast.LENGTH_LONG).show();
+            }
+        });
+
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_2, container, false);
+        return v;
+
+
     }
+
 }

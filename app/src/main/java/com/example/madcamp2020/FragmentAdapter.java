@@ -37,10 +37,6 @@ public class FragmentAdapter extends RecyclerView.Adapter<FragmentAdapter.Holder
         return holder;
     }
 
-    /*
-     * Todo 만들어진 ViewHolder에 data 삽입 ListView의 getView와 동일
-     *
-     * */
     @Override
     public void onBindViewHolder(Holder holder, int position) {
         // 각 위치에 문자열 세팅
