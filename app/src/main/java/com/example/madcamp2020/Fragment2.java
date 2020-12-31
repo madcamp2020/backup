@@ -73,6 +73,8 @@ public class Fragment2 extends Fragment {
         Log.e(TAG, "ALBUM GO");
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType(MediaStore.Images.Media.CONTENT_TYPE);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent, PICK_FROM_ALBUM);
 
     }
